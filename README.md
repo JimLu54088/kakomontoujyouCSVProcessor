@@ -1,2 +1,4 @@
 # kakomontoujyouCSVProcessor
 將每次寫完過去問道場的成績計算每次的成績及輸出總平均
+
+csv檔案要存成UTF-8 檔案路徑可以從java/resource/system.property裡面改
