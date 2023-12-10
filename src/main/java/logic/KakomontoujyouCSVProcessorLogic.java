@@ -73,7 +73,7 @@ public class KakomontoujyouCSVProcessorLogic {
 
 				// 將平均值寫入新的 CSV 文件
 				writeAverageToFile(targetFile, round_average_get);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				System.out.println("error file is " + targetFile.getName());
 				e.printStackTrace();
 				// 遇到錯誤時的處理邏輯
@@ -92,7 +92,7 @@ public class KakomontoujyouCSVProcessorLogic {
 
 				avgList.add(avg);
 
-			} catch (IOException e) {
+			} catch (Exception e) {
 				System.out.println("error file is " + targetAVGFile.getName());
 				e.printStackTrace();
 				// 遇到錯誤時的處理邏輯

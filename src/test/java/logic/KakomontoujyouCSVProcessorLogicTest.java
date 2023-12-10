@@ -4,7 +4,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -14,7 +17,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
-import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -42,11 +44,14 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.powermock.reflect.Whitebox;
+
+import common.PropertiesUtils;
 
 public class KakomontoujyouCSVProcessorLogicTest {
 
@@ -228,8 +233,8 @@ public class KakomontoujyouCSVProcessorLogicTest {
 				.contains(LOG_HEADER + "getTargetFileList process end, targetFile = report202312042301.csv"));
 		assertTrue(writer.toString().contains(LOG_HEADER
 				+ "File report202312042301.csv 's average is written to report202312042301_average_result.csv"));
-		assertTrue(writer.toString().contains(
-				LOG_HEADER + "getAVGFileList process start, CsvFilePath = D:\\shell_test_231103\\localtest"));
+		assertTrue(writer.toString()
+				.contains(LOG_HEADER + "getAVGFileList process start, CsvFilePath = D:\\shell_test_231103\\localtest"));
 		assertTrue(writer.toString().contains(
 				LOG_HEADER + "getAVGFileList process end, targetFile = report202312042301_average_result.csv"));
 
@@ -304,101 +309,128 @@ public class KakomontoujyouCSVProcessorLogicTest {
 
 	}
 
-//	@Test
-//	public void failGetLocalList() throws Exception {
-//		StringWriter writer = new StringWriter();
-//
-//		addAppender(writer, MOCK_APPENDER, Level.ERROR);
-//
-//		when(logic.getLocalDirectory()).thenThrow(new RuntimeException("Simulated exception"));
-////		when(logic.getLocalDirectory()).thenReturn(null);
-//		Method method = logic.getClass().getDeclaredMethod("getLocalFileList");
-//
-//		method.setAccessible(true);
-//
-//		try {
-//
-////			List<File> result = logic.getLocalFileList();
-////
-////            // 断言结果是空的列表
-////            assertEquals(0, result.size());
-//
-//
-//
-//			method.invoke(logic);
-//			fail();
-//		} catch (Exception e) {
-//			Throwable throwable = e.getCause();
-//
-//			assertEquals(RuntimeException.class, throwable.getClass());
-//			assertTrue(writer.toString()
-//					.contains(ERROR_LOG_HEADER + "fail to get files from local directory. LocalDirPath=null"));
-//
-//		}
-//
-//	}
+	@Test
+	public void fail_readCSVFileAndWriteAVGToNewCsvAndCreateTotalAVGfILE_readOcountError() throws Exception {
+		StringWriter writer = new StringWriter();
+		addAppender(writer, MOCK_APPENDER, Level.INFO);
 
-//	@Test
-//	public void failGetLocalList() {
-//		StringWriter writer = new StringWriter();
-//		addAppender(writer, MOCK_APPENDER, Level.ERROR);
-//
-//		// 模拟 dir.listFiles() 抛出 RuntimeException
-//		File dir = mock(File.class);
-//
-//		// 设置 logic.localDirectory，确保在构造 File 对象时返回模拟的 File
-//		Whitebox.setInternalState(logic, "localDirectory", "null");
-//
-//		try {
-//			List<File> result = logic.getLocalFileList();
-//
-//			// 验证日志是否被正确记录
-//		} catch (RuntimeException e) {
-//			// 捕获RuntimeException
-//
-//			assertEquals("getLocalFileListError", e.getMessage());
-//			Throwable throwable = e.getCause();
-//
-//			assertEquals(NullPointerException.class, throwable.getClass());
-//
-//			System.out.println("kkk" + writer.toString());
-//
-//			assertTrue(writer.toString()
-//					.contains(ERROR_LOG_HEADER + "fail to get files from local directory. LocalDirPath=null"));
-//		}
-//	}
+		Files.deleteIfExists(localFileDirPath.resolve("report202312042301.csv"));
+		Files.createFile(localFileDirPath.resolve("report202312042301.csv"));
 
-//	@Test
-//	public void failGetLocalList() throws Exception {
-//	    StringWriter writer = new StringWriter();
-//
-//	    addAppender(writer, MOCK_APPENDER, Level.ERROR);
-//
-//	    when(logic.getLocalDirectory()).thenThrow(new RuntimeException("Simulated exception"));
-//
-//	    Method method = logic.getClass().getDeclaredMethod("getLocalFileList");
-//	    method.setAccessible(true);
-//
-//	    try {
-//	        method.invoke(logic);
-//	        fail();
-//	    } catch (Throwable  e) {
-////	        Throwable throwable = e.getCause();
-//
-//	    	// 输出异常信息
-//	        System.out.println("Caught exception: " + e.getMessage());
-////	        e.printStackTrace();
-//
-//
-////	        assertEquals(RuntimeException.class, throwable.getClass());
-//
-//	        System.out.println("writer to string is " + writer.toString());
-//	        assertTrue(writer.toString()
-//	                .contains(ERROR_LOG_HEADER + "fail to get files from local directory. LocalDirPath=null"));
-//
-//
-//	    }
-//	}
+		Path filepath = Paths.get(LOCAL_DIRECTORY_PATH + "report202312042301.csv");
+
+		try (BufferedWriter br = new BufferedWriter(new FileWriter(filepath.toString(), StandardCharsets.UTF_8))) {
+
+			br.write("No.,正誤,分野名,大分類,中分類,出典,学習日");
+			br.newLine(); // 換行
+
+			// 寫入第二行數據
+			br.write("yyyy");
+
+		}
+
+		try {
+
+			logic.readCSVFileAndWriteAVGToNewCsvAndCreateTotalAVGfILE();
+
+		} catch (Exception ex) {
+
+		}
+
+		this.deleteTempFile();
+
+	}
+
+	@Test
+	public void fail_readCSVFileAndWriteAVGToNewCsvAndCreateTotalAVGfILE_readAVGError() throws Exception {
+		StringWriter writer = new StringWriter();
+		addAppender(writer, MOCK_APPENDER, Level.INFO);
+
+		Files.deleteIfExists(localFileDirPath.resolve("report202312042301.csv"));
+		Files.createFile(localFileDirPath.resolve("report202312042301.csv"));
+
+		Path filepath = Paths.get(LOCAL_DIRECTORY_PATH + "report202312042301.csv");
+
+		List<File> targetAVGFiles = new ArrayList<>();
+
+		when(logic.getAVGFileList()).thenReturn(targetAVGFiles);
+
+		try (BufferedWriter br = new BufferedWriter(new FileWriter(filepath.toString(), StandardCharsets.UTF_8))) {
+
+			br.write("No.,正誤,分野名,大分類,中分類,出典,学習日");
+			br.newLine(); // 換行
+
+			// 寫入第二行數據
+			br.write("yyyy");
+
+		}
+
+		targetAVGFiles.add(filepath.toFile());
+
+		try {
+
+			logic.readCSVFileAndWriteAVGToNewCsvAndCreateTotalAVGfILE();
+
+		} catch (Exception ex) {
+
+		}
+
+		this.deleteTempFile();
+
+	}
+
+	@Test
+	public void fail_readCSVFileAndWriteAVGToNewCsvAndCreateTotalAVGfILE_writeTotalAverageToFileError()
+			throws Exception {
+		StringWriter writer = new StringWriter();
+		addAppender(writer, MOCK_APPENDER, Level.INFO);
+
+		Files.deleteIfExists(localFileDirPath.resolve("report202312042301.csv"));
+		Files.createFile(localFileDirPath.resolve("report202312042301.csv"));
+
+		Path filepath = Paths.get(LOCAL_DIRECTORY_PATH + "report202312042301.csv");
+
+		doThrow(new IOException()).when(logic).writeTotalAverageToFile(any());
+
+		try (BufferedWriter br = new BufferedWriter(new FileWriter(filepath.toString(), StandardCharsets.UTF_8))) {
+
+			br.write("No.,正誤,分野名,大分類,中分類,出典,学習日");
+			br.newLine(); // 換行
+
+			// 寫入第二行數據
+			br.write(
+					"1,○,テクノロジ系,基礎理論,基礎理論,\"=HYPERLINK(\"\"https://www.fe-siken.com/kakomon/17_aki/q5.html\"\",\"\"平成17年秋期 問5\"\")\",2023/12/4");
+			br.newLine(); // 換行
+
+			// 寫入第3行數據
+			br.write(
+					"2,○,テクノロジ系,基礎理論,アルゴリズムとプログラミング,\"=HYPERLINK(\"\"https://www.fe-siken.com/kakomon/17_haru/q13.html\"\",\"\"平成17年春期 問13\"\")\",2023/12/4");
+			br.newLine(); // 換行
+
+			// 寫入第4行數據
+			br.write(
+					"3,×,テクノロジ系,基礎理論,基礎理論,\"=HYPERLINK(\"\"https://www.fe-siken.com/kakomon/20_haru/q6.html\"\",\"\"平成20年春期 問6\"\")\",2023/12/4");
+			br.newLine(); // 換行
+
+			// 寫入第5行數據
+			br.write(
+					"4,×,テクノロジ系,基礎理論,基礎理論,\"=HYPERLINK(\"\"https://www.fe-siken.com/kakomon/29_aki/q3.html\"\",\"\"平成29年秋期 問3\"\")\",2023/12/4");
+			br.newLine(); // 換行
+			br.write(" ");
+
+		}
+
+		try {
+
+			logic.readCSVFileAndWriteAVGToNewCsvAndCreateTotalAVGfILE();
+
+		} catch (Exception ex) {
+
+		}
+
+		this.deleteTempFile();
+
+	}
 
 	private void addAppender(StringWriter writer, String name, Level level) {
 		final LoggerContext context = LoggerContext.getContext(false);
